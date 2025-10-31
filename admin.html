@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Smog — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body { font-family: system-ui, Arial, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background: #f6f6f6; }
+</style>
+</head>
+<body>
+<h1>Bookings (read-only)</h1>
+<p><a href="./">← Back to booking</a></p>
+<table id="tbl">
+  <thead>
+    <tr>
+      <th>Date</th><th>Start</th><th>Name</th><th>Phone</th><th>Email</th><th>Plate</th><th>Created</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<script>
+  const SUPABASE_URL = "https://fkuolecchzsysjkrfhtt.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdW9sZWNjaHpzeXNqa3JmaHR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTM0MTcsImV4cCI6MjA3NzQyOTQxN30.tlnhsdrOtVDxr0DFCfi5_-a3-6D2w80Qv1vE6ldtEbA";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function load() {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('appt_date', { ascending: true })
+      .order('start_time', { ascending: true });
+
+    if (error) { alert('Error loading bookings'); console.error(error); return; }
+
+    const tbody = document.querySelector('#tbl tbody');
+    tbody.innerHTML = '';
+    for (const r of data) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.appt_date}</td>
+        <td>${r.start_time?.slice(0,5)}</td>
+        <td>${r.full_name || ''}</td>
+        <td>${r.phone || ''}</td>
+        <td>${r.email || ''}</td>
+        <td>${r.car_plate || ''}</td>
+        <td>${new Date(r.created_at).toLocaleString()}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+  load();
+</script>
+</body>
+</html>
