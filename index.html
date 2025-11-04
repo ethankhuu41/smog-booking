@@ -3,178 +3,223 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Smog Check — Book a Time</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>Smog Solutions — Fast, Reliable Smog Checks</title>
+  <meta name="description" content="Fast, reliable smog checks. Book your appointment online in minutes." />
   <style>
-    body { font-family: system-ui, Arial, sans-serif; max-width: 760px; margin: 32px auto; padding: 0 16px; }
-    h1 { margin-bottom: 8px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(120px,1fr)); gap: 8px; margin-top: 12px; }
-    button.slot { padding: 10px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; border-radius: 8px; }
-    button.slot[disabled] { background: #eee; color: #888; cursor: not-allowed; }
-    form { margin-top: 16px; display: grid; gap: 10px; }
-    input, button[type=submit], select { padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
-    .row { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
-    .note { color: #555; font-size: 14px; }
-    .success { color: #0a7a0a; margin-top: 8px; }
-    .error { color: #b30000; margin-top: 8px; }
-    .pill { display:inline-block; padding: 2px 8px; font-size: 12px; background:#f2f2f2; border-radius:999px; margin-left:8px;}
+    :root{
+      --brand:#0a63ff;       /* button / links */
+      --brand-dark:#094dd1;  /* button hover */
+      --ink:#1b1f23;
+      --muted:#57606a;
+      --bg:#ffffff;
+      --footer:#0f172a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+         color:var(--ink); background:var(--bg);}
+    a{color:var(--brand); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .container{max-width:1100px;margin:0 auto;padding:0 16px}
+    /* NAV */
+    .nav{position:sticky;top:0;background:#fff;border-bottom:1px solid #e5e7eb;z-index:10}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+    .brand-badge{width:32px;height:32px;border-radius:8px;background:var(--brand)}
+    .menu{display:flex;gap:18px;align-items:center;font-weight:500}
+    .btn{display:inline-block;padding:10px 16px;border-radius:10px;border:1px solid transparent;
+         background:var(--brand);color:#fff;font-weight:700}
+    .btn:hover{background:var(--brand-dark)}
+    .btn-outline{background:#fff;color:var(--brand);border-color:var(--brand)}
+    .btn-outline:hover{background:#eef3ff}
+    /* HERO */
+    .hero{position:relative;background:#0f172a;color:#fff}
+    .hero-inner{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:center;padding:52px 0}
+    .hero h1{font-size:42px;line-height:1.1;margin:0 0 12px}
+    .hero p{color:#e5e7eb;margin:0 0 18px}
+    .hero-img{min-height:280px;border-radius:14px;background:
+      linear-gradient(140deg,#1f2937 0%,#0b1226 60%),
+      url('assets/hero.jpg') center/cover no-repeat; /* replace with your own image later */
+      border:1px solid rgba(255,255,255,.08)}
+    .badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}
+    /* FEATURE STRIP */
+    .features{background:#fff;padding:28px 0;border-bottom:1px solid #e5e7eb}
+    .features-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+    .feat{display:flex;gap:12px;align-items:flex-start;border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+    .icon{width:36px;height:36px;border-radius:10px;background:#eef3ff;display:grid;place-items:center}
+    .feat h3{margin:0 0 6px;font-size:16px}
+    .feat p{margin:0;color:var(--muted);font-size:14px}
+    /* SERVICES LIST */
+    .services{padding:36px 0}
+    .services h2{margin:0 0 12px}
+    .svc-wrap{display:grid;grid-template-columns:2fr 1fr;gap:24px}
+    .svc-list{border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+    .svc-list ul{margin:0;padding-left:18px}
+    .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+    /* CTA band */
+    .cta{background:#eef3ff;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb}
+    .cta .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:22px 0;flex-wrap:wrap}
+    /* FOOTER */
+    footer{background:var(--footer);color:#cbd5e1;margin-top:32px}
+    .footer-grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));padding:28px 0}
+    footer h4{margin:0 0 8px;color:#e2e8f0}
+    footer a{color:#cbd5e1}
+    .social{display:flex;gap:12px;margin-top:6px}
+    .copy{border-top:1px solid rgba(226,232,240,.12);padding:12px 0;color:#94a3b8;font-size:14px}
+    @media (max-width:900px){
+      .hero-inner{grid-template-columns:1fr}
+    }
   </style>
 </head>
 <body>
-  <h1>Book Your Smog Check <span class="pill">20 min per car</span> <span class="pill">10:00–17:00</span></h1>
-  <p class="note">Pick a date and a time. Slots are first-come first-served.</p>
 
-  <label for="date">Choose a date</label>
-  <input id="date" type="date" />
-
-  <div id="slots" class="grid"></div>
-
-  <form id="bookingForm" style="display:none;">
-    <div class="row">
-      <input id="full_name" placeholder="Full name" required />
-      <input id="phone" placeholder="Phone (digits only)" required />
+  <!-- NAV -->
+  <div class="nav">
+    <div class="container nav-inner">
+      <div class="brand">
+        <div class="brand-badge"></div>
+        <span id="shopName">Smog Solutions</span>
+      </div>
+      <nav class="menu">
+        <a href="./">Home</a>
+        <a href="#services">Services</a>
+        <a href="appointment.html">Appointment</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#contact">Contact</a>
+        <a class="btn btn-outline" href="appointment.html">Get Free Quote</a>
+      </nav>
     </div>
-    <div class="row">
-      <input id="email" placeholder="Email (optional)" type="email" />
-      <input id="car_plate" placeholder="License plate (optional)" />
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div>
+        <h1>Fast, Reliable<br/>Smog Checks</h1>
+        <p>Certified for all vehicles — cars, trucks, RVs. Open 10:00 AM – 5:00 PM. Average visit ~20 minutes.</p>
+        <div class="badges">
+          <span class="pill">Test-Only & Regular</span>
+          <span class="pill">All Vehicle Types</span>
+          <span class="pill">Certified Technicians</span>
+        </div>
+        <p style="margin-top:18px">
+          <a class="btn" href="appointment.html">Book Appointment Now</a>
+        </p>
+      </div>
+      <div class="hero-img" aria-label="Shop photo placeholder"></div>
     </div>
-    <input id="selected_slot" disabled />
-    <button type="submit">Confirm Booking</button>
-    <div id="message"></div>
-  </form>
+  </section>
+
+  <!-- FEATURE STRIP -->
+  <section class="features">
+    <div class="container">
+      <div class="features-grid">
+        <div class="feat">
+          <div class="icon" aria-hidden="true">🚗</div>
+          <div>
+            <h3>All Vehicle Types</h3>
+            <p>Cars, trucks, SUVs, and RVs welcome.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="icon" aria-hidden="true">⏱️</div>
+          <div>
+            <h3>Quick & Easy</h3>
+            <p>Most checks done in ~20 minutes.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="icon" aria-hidden="true">🛡️</div>
+          <div>
+            <h3>Certified Techs</h3>
+            <p>Professional, friendly, and accurate.</p>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="icon" aria-hidden="true">💳</div>
+          <div>
+            <h3>Transparent Pricing</h3>
+            <p>No surprises. Pay in shop after service.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section id="services" class="services">
+    <div class="container svc-wrap">
+      <div class="svc-list">
+        <h2>Our Services</h2>
+        <ul>
+          <li>Regular Smog Check</li>
+          <li>Test-Only Smog Check</li>
+          <li>Diesel Smog Check</li>
+          <li>Pre-Inspection</li>
+          <li>Re-Test</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why choose us?</h3>
+        <p style="color:var(--muted);margin-top:8px">
+          We respect your time. Book online, show up, and we’ll get you in and out fast.
+        </p>
+        <p style="margin-top:14px">
+          <a class="btn" href="appointment.html">Schedule Now</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BAND -->
+  <section class="cta">
+    <div class="container row">
+      <strong>Need a smog check this week?</strong>
+      <a class="btn" href="appointment.html">Find a Time</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="contact">
+    <div class="container footer-grid">
+      <div>
+        <h4>Quick Links</h4>
+        <p><a href="./">Home</a><br/>
+           <a href="#services">Services</a><br/>
+           <a href="appointment.html">Appointment</a></p>
+      </div>
+      <div>
+        <h4>Contact Info</h4>
+        <p>
+          <strong id="shopName2">Smog Solutions</strong><br/>
+          <span id="shopAddress">1234 Main St, Your City, CA</span><br/>
+          Phone: <a id="shopPhone" href="tel:+15551234567">(555) 123-4567</a><br/>
+          Email: <a id="shopEmail" href="mailto:info@smogsolutions.com">info@smogsolutions.com</a>
+        </p>
+      </div>
+      <div>
+        <h4>Hours of Operation</h4>
+        <p>Mon – Sun: 10:00 AM – 5:00 PM</p>
+      </div>
+      <div>
+        <h4>Follow</h4>
+        <div class="social">
+          <a aria-label="Instagram" href="#" title="Instagram">📸</a>
+          <a aria-label="Facebook" href="#" title="Facebook">👍</a>
+          <a aria-label="Twitter/X" href="#" title="Twitter/X">🐦</a>
+        </div>
+      </div>
+    </div>
+    <div class="container copy">© <span id="year"></span> <span id="shopName3">Smog Solutions</span>. All rights reserved.</div>
+  </footer>
 
   <script>
-    // === CONFIG ===
-    const SUPABASE_URL = "https://fkuolecchzsysjkrfhtt.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdW9sZWNjaHpzeXNqa3JmaHR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTM0MTcsImV4cCI6MjA3NzQyOTQxN30.tlnhsdrOtVDxr0DFCfi5_-a3-6D2w80Qv1vE6ldtEbA";
-    const OPEN_HOUR = 10;              // 10:00
-    const CLOSE_LAST_START = 16*60+40; // 16:40 in minutes since midnight
-    const SLOT_MINUTES = 20;
-
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    const dateEl = document.getElementById('date');
-    const slotsEl = document.getElementById('slots');
-    const formEl = document.getElementById('bookingForm');
-    const msgEl = document.getElementById('message');
-    const selectedSlotEl = document.getElementById('selected_slot');
-
-    let selectedDate = null;
-    let selectedTime = null;
-
-    // set min date = today (local)
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    dateEl.min = `${yyyy}-${mm}-${dd}`;
-
-    dateEl.addEventListener('change', async () => {
-      selectedDate = dateEl.value; // YYYY-MM-DD
-      selectedTime = null;
-      selectedSlotEl.value = '';
-      formEl.style.display = 'none';
-      msgEl.textContent = '';
-      await renderSlots(selectedDate);
-    });
-
-    function* generateSlots() {
-      let minutes = OPEN_HOUR * 60;
-      while (minutes <= CLOSE_LAST_START) {
-        yield minutesToHHMM(minutes);
-        minutes += SLOT_MINUTES;
-      }
-    }
-
-    function minutesToHHMM(mins) {
-      const h = Math.floor(mins / 60);
-      const m = mins % 60;
-      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-    }
-
-    async function fetchBookedTimes(isoDate) {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('start_time')
-        .eq('appt_date', isoDate);
-      if (error) {
-        console.error(error);
-        return new Set();
-      }
-      return new Set((data || []).map(r => r.start_time.slice(0,5))); // "HH:MM:SS" -> "HH:MM"
-    }
-
-    async function renderSlots(isoDate) {
-      slotsEl.innerHTML = 'Loading...';
-      const booked = await fetchBookedTimes(isoDate);
-      slotsEl.innerHTML = '';
-
-      for (const hhmm of generateSlots()) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'slot';
-        btn.textContent = hhmm;
-        btn.disabled = booked.has(hhmm);
-        btn.addEventListener('click', () => {
-          selectedTime = hhmm;
-          selectedSlotEl.value = `Selected: ${isoDate} at ${hhmm}`;
-          msgEl.textContent = '';
-          formEl.style.display = 'grid';
-          formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-        slotsEl.appendChild(btn);
-      }
-      if (slotsEl.children.length === 0) slotsEl.textContent = 'No slots.';
-    }
-
-    formEl.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      msgEl.className = '';
-      msgEl.textContent = '';
-
-      const full_name = document.getElementById('full_name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const car_plate = document.getElementById('car_plate').value.trim();
-
-      if (!selectedDate || !selectedTime) {
-        msgEl.className = 'error';
-        msgEl.textContent = 'Pick a time slot first.';
-        return;
-      }
-
-      if (!/^[0-9\-+\s()]{7,}$/.test(phone)) {
-        msgEl.className = 'error';
-        msgEl.textContent = 'Enter a valid phone number.';
-        return;
-      }
-
-      const { error } = await supabase.from('bookings').insert({
-        full_name, phone, email, car_plate,
-        appt_date: selectedDate,
-        start_time: selectedTime + ':00'
-      });
-
-      if (error) {
-        if (String(error.code) === '23505') {
-          msgEl.className = 'error';
-          msgEl.textContent = 'Sorry, that slot was just taken. Pick another.';
-          await renderSlots(selectedDate);
-          return;
-        }
-        console.error(error);
-        msgEl.className = 'error';
-        msgEl.textContent = 'Error creating booking. Try again.';
-        return;
-      }
-
-      msgEl.className = 'success';
-      msgEl.textContent = 'Booking confirmed. See you then!';
-      await renderSlots(selectedDate);
-      formEl.reset();
-      formEl.style.display = 'none';
-      selectedSlotEl.value = '';
-    });
+    // quick helpers to update the footer year and keep names consistent
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const name = 'Smog Solutions'; // change once, applied in three places
+    document.getElementById('shopName').textContent = name;
+    document.getElementById('shopName2').textContent = name;
+    document.getElementById('shopName3').textContent = name;
   </script>
 </body>
 </html>
