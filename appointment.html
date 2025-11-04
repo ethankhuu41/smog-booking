@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smog Check — Book a Time</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; max-width: 760px; margin: 32px auto; padding: 0 16px; }
+    h1 { margin-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(120px,1fr)); gap: 8px; margin-top: 12px; }
+    button.slot { padding: 10px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; border-radius: 8px; }
+    button.slot[disabled] { background: #eee; color: #888; cursor: not-allowed; }
+    form { margin-top: 16px; display: grid; gap: 10px; }
+    input, button[type=submit], select { padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+    .row { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+    .note { color: #555; font-size: 14px; }
+    .success { color: #0a7a0a; margin-top: 8px; }
+    .error { color: #b30000; margin-top: 8px; }
+    .pill { display:inline-block; padding: 2px 8px; font-size: 12px; background:#f2f2f2; border-radius:999px; margin-left:8px;}
+  </style>
+</head>
+<body>
+  <h1>Book Your Smog Check <span class="pill">20 min per car</span> <span class="pill">10:00–17:00</span></h1>
+  <p class="note">Pick a date and a time. Slots are first-come first-served.</p>
+
+  <label for="date">Choose a date</label>
+  <input id="date" type="date" />
+
+  <div id="slots" class="grid"></div>
+
+  <form id="bookingForm" style="display:none;">
+    <div class="row">
+      <input id="full_name" placeholder="Full name" required />
+      <input id="phone" placeholder="Phone (digits only)" required />
+    </div>
+    <div class="row">
+      <input id="email" placeholder="Email (optional)" type="email" />
+      <input id="car_plate" placeholder="License plate (optional)" />
+    </div>
+    <input id="selected_slot" disabled />
+    <button type="submit">Confirm Booking</button>
+    <div id="message"></div>
+  </form>
+
+  <script>
+    // === CONFIG ===
+    const SUPABASE_URL = "https://fkuolecchzsysjkrfhtt.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdW9sZWNjaHpzeXNqa3JmaHR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTM0MTcsImV4cCI6MjA3NzQyOTQxN30.tlnhsdrOtVDxr0DFCfi5_-a3-6D2w80Qv1vE6ldtEbA";
+    const OPEN_HOUR = 10;              // 10:00
+    const CLOSE_LAST_START = 16*60+40; // 16:40 in minutes since midnight
+    const SLOT_MINUTES = 20;
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const dateEl = document.getElementById('date');
+    const slotsEl = document.getElementById('slots');
+    const formEl = document.getElementById('bookingForm');
+    const msgEl = document.getElementById('message');
+    const selectedSlotEl = document.getElementById('selected_slot');
+
+    let selectedDate = null;
+    let selectedTime = null;
+
+    // set min date = today (local)
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    dateEl.min = `${yyyy}-${mm}-${dd}`;
+
+    dateEl.addEventListener('change', async () => {
+      selectedDate = dateEl.value; // YYYY-MM-DD
+      selectedTime = null;
+      selectedSlotEl.value = '';
+      formEl.style.display = 'none';
+      msgEl.textContent = '';
+      await renderSlots(selectedDate);
+    });
+
+    function* generateSlots() {
+      let minutes = OPEN_HOUR * 60;
+      while (minutes <= CLOSE_LAST_START) {
+        yield minutesToHHMM(minutes);
+        minutes += SLOT_MINUTES;
+      }
+    }
+
+    function minutesToHHMM(mins) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    }
+
+    async function fetchBookedTimes(isoDate) {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('start_time')
+        .eq('appt_date', isoDate);
+      if (error) {
+        console.error(error);
+        return new Set();
+      }
+      return new Set((data || []).map(r => r.start_time.slice(0,5))); // "HH:MM:SS" -> "HH:MM"
+    }
+
+    async function renderSlots(isoDate) {
+      slotsEl.innerHTML = 'Loading...';
+      const booked = await fetchBookedTimes(isoDate);
+      slotsEl.innerHTML = '';
+
+      for (const hhmm of generateSlots()) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'slot';
+        btn.textContent = hhmm;
+        btn.disabled = booked.has(hhmm);
+        btn.addEventListener('click', () => {
+          selectedTime = hhmm;
+          selectedSlotEl.value = `Selected: ${isoDate} at ${hhmm}`;
+          msgEl.textContent = '';
+          formEl.style.display = 'grid';
+          formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        slotsEl.appendChild(btn);
+      }
+      if (slotsEl.children.length === 0) slotsEl.textContent = 'No slots.';
+    }
+
+    formEl.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msgEl.className = '';
+      msgEl.textContent = '';
+
+      const full_name = document.getElementById('full_name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const car_plate = document.getElementById('car_plate').value.trim();
+
+      if (!selectedDate || !selectedTime) {
+        msgEl.className = 'error';
+        msgEl.textContent = 'Pick a time slot first.';
+        return;
+      }
+
+      if (!/^[0-9\-+\s()]{7,}$/.test(phone)) {
+        msgEl.className = 'error';
+        msgEl.textContent = 'Enter a valid phone number.';
+        return;
+      }
+
+      const { error } = await supabase.from('bookings').insert({
+        full_name, phone, email, car_plate,
+        appt_date: selectedDate,
+        start_time: selectedTime + ':00'
+      });
+
+      if (error) {
+        if (String(error.code) === '23505') {
+          msgEl.className = 'error';
+          msgEl.textContent = 'Sorry, that slot was just taken. Pick another.';
+          await renderSlots(selectedDate);
+          return;
+        }
+        console.error(error);
+        msgEl.className = 'error';
+        msgEl.textContent = 'Error creating booking. Try again.';
+        return;
+      }
+
+      msgEl.className = 'success';
+      msgEl.textContent = 'Booking confirmed. See you then!';
+      await renderSlots(selectedDate);
+      formEl.reset();
+      formEl.style.display = 'none';
+      selectedSlotEl.value = '';
+    });
+  </script>
+</body>
+</html>
