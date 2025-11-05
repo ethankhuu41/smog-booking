@@ -3,178 +3,332 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Smog Check — Book a Time</title>
+  <title>Book Appointment — Smog Solutions</title>
+  <meta name="description" content="Book your smog check appointment online. 20-minute slots, 10am–5pm." />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; max-width: 760px; margin: 32px auto; padding: 0 16px; }
-    h1 { margin-bottom: 8px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(120px,1fr)); gap: 8px; margin-top: 12px; }
-    button.slot { padding: 10px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; border-radius: 8px; }
-    button.slot[disabled] { background: #eee; color: #888; cursor: not-allowed; }
-    form { margin-top: 16px; display: grid; gap: 10px; }
-    input, button[type=submit], select { padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
-    .row { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
-    .note { color: #555; font-size: 14px; }
-    .success { color: #0a7a0a; margin-top: 8px; }
-    .error { color: #b30000; margin-top: 8px; }
-    .pill { display:inline-block; padding: 2px 8px; font-size: 12px; background:#f2f2f2; border-radius:999px; margin-left:8px;}
+    :root{
+      --brand:#0a63ff; --brand-dark:#094dd1; --ink:#1b1f23; --muted:#57606a; --border:#e5e7eb; --bg:#fff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--ink);background:#fff}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .nav{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);z-index:10}
+    .container{max-width:1100px;margin:0 auto;padding:0 16px}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:700}
+    .brand-badge{width:32px;height:32px;border-radius:8px;background:var(--brand)}
+    .menu{display:flex;gap:18px;align-items:center;font-weight:500}
+
+    .wrap{padding:18px 0}
+    .grid{display:grid;gap:20px;grid-template-columns:2fr 1fr}
+    .card{border:1px solid var(--border);border-radius:12px;background:#fff}
+    .card h2{margin:0;padding:14px 16px;border-bottom:1px solid var(--border);font-size:18px}
+    .card .body{padding:16px}
+    .row{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+    input, select, button{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font:inherit}
+    button.btn{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700;cursor:pointer}
+    button.btn:hover{background:var(--brand-dark)}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+    .muted{color:var(--muted);font-size:14px}
+    .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px}
+    .slot{padding:10px;border:1px solid var(--border);border-radius:10px;background:#fafafa;cursor:pointer}
+    .slot[disabled]{background:#eee;color:#888;cursor:not-allowed}
+    .cal{display:grid;gap:10px}
+    .cal-header{display:flex;align-items:center;justify-content:space-between}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+    .cal-grid button{padding:10px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer}
+    .cal-grid button.sel{background:#eef3ff;border-color:var(--brand)}
+    .sum-row{display:flex;justify-content:space-between;margin:6px 0}
+    .ok{color:#0a7a0a}
+    .err{color:#b30000}
   </style>
 </head>
 <body>
-  <h1>Book Your Smog Check <span class="pill">20 min per car</span> <span class="pill">10:00–17:00</span></h1>
-  <p class="note">Pick a date and a time. Slots are first-come first-served.</p>
-
-  <label for="date">Choose a date</label>
-  <input id="date" type="date" />
-
-  <div id="slots" class="grid"></div>
-
-  <form id="bookingForm" style="display:none;">
-    <div class="row">
-      <input id="full_name" placeholder="Full name" required />
-      <input id="phone" placeholder="Phone (digits only)" required />
+  <!-- NAV -->
+  <div class="nav">
+    <div class="container nav-inner">
+      <div class="brand">
+        <div class="brand-badge"></div>
+        <span>Smog Solutions</span>
+      </div>
+      <nav class="menu">
+        <a href="./">Home</a>
+        <a href="./#services">Services</a>
+        <a href="appointment.html">Appointment</a>
+        <a href="./#contact">Contact</a>
+      </nav>
     </div>
-    <div class="row">
-      <input id="email" placeholder="Email (optional)" type="email" />
-      <input id="car_plate" placeholder="License plate (optional)" />
+  </div>
+
+  <div class="container wrap">
+    <div class="grid">
+      <!-- LEFT: Calendar + time + form -->
+      <div class="card">
+        <h2>Book Your Smog Check Appointment</h2>
+        <div class="body">
+          <!-- Calendar -->
+          <div class="cal">
+            <div class="cal-header">
+              <button id="prevMonth" type="button">◀</button>
+              <div id="monthLabel" style="font-weight:700"></div>
+              <button id="nextMonth" type="button">▶</button>
+            </div>
+            <div class="cal-grid muted" id="dow">
+              <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div class="cal-grid" id="calDays"></div>
+          </div>
+
+          <!-- Time slots -->
+          <div style="margin-top:12px">
+            <div class="muted">Available times</div>
+            <div id="slots" class="slots"></div>
+          </div>
+
+          <!-- Form -->
+          <form id="bookingForm" style="margin-top:14px">
+            <div class="row">
+              <input id="full_name" placeholder="Full Name" required />
+              <input id="phone" placeholder="Phone Number" required />
+            </div>
+            <div class="row">
+              <input id="email" placeholder="Email" type="email" />
+              <input id="plate" placeholder="License Plate Number" />
+            </div>
+            <div class="row">
+              <select id="vehicle_type">
+                <option value="">Vehicle Type</option>
+                <option>Car</option>
+                <option>Truck</option>
+                <option>SUV</option>
+                <option>Van</option>
+                <option>RV</option>
+                <option>Diesel</option>
+              </select>
+              <select id="service_type">
+                <option>Standard Smog Check</option>
+                <option>Test Only</option>
+                <option>Diesel Smog Check</option>
+                <option>Pre-Inspection</option>
+                <option>Re-Test</option>
+              </select>
+            </div>
+            <label class="muted" style="display:flex;align-items:center;gap:8px;margin-top:6px">
+              <input id="sms_opt_in" type="checkbox" /> Receive SMS reminders
+            </label>
+
+            <div id="formMsg" class="muted" style="margin-top:8px"></div>
+            <button id="confirmBtn" class="btn" type="submit" disabled>Confirm Appointment</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- RIGHT: Summary -->
+      <div class="card" id="summaryCard">
+        <h2>Appointment Summary</h2>
+        <div class="body">
+          <div class="sum-row"><span>Date</span><strong id="sumDate">—</strong></div>
+          <div class="sum-row"><span>Time</span><strong id="sumTime">—</strong></div>
+          <div class="sum-row"><span>Service</span><strong id="sumService">Standard Smog Check</strong></div>
+          <div class="sum-row"><span>Vehicle</span><strong id="sumVehicle">—</strong></div>
+          <div class="sum-row"><span>Customer</span><strong id="sumName">—</strong></div>
+          <div class="sum-row"><span>Phone</span><strong id="sumPhone">—</strong></div>
+          <p class="muted" style="margin-top:10px">No payment required today.</p>
+          <div id="sumStatus" class="muted"></div>
+        </div>
+      </div>
     </div>
-    <input id="selected_slot" disabled />
-    <button type="submit">Confirm Booking</button>
-    <div id="message"></div>
-  </form>
+  </div>
 
   <script>
-    // === CONFIG ===
-    const SUPABASE_URL = "https://fkuolecchzsysjkrfhtt.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdW9sZWNjaHpzeXNqa3JmaHR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTM0MTcsImV4cCI6MjA3NzQyOTQxN30.tlnhsdrOtVDxr0DFCfi5_-a3-6D2w80Qv1vE6ldtEbA";
-    const OPEN_HOUR = 10;              // 10:00
-    const CLOSE_LAST_START = 16*60+40; // 16:40 in minutes since midnight
-    const SLOT_MINUTES = 20;
+    // ==== CONFIG (replace) ====
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+    const OPEN_MIN = 10*60;          // 10:00 → minutes from midnight
+    const LAST_START_MIN = 16*60+40; // 16:40
+    const SLOT_MIN = 20;
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const dateEl = document.getElementById('date');
+    // ==== STATE ====
+    let viewMonth = new Date(); // month being shown
+    viewMonth.setDate(1);
+    let selectedDate = null; // 'YYYY-MM-DD'
+    let selectedTime = null; // 'HH:MM'
+    let bookedForDay = new Set();
+
+    // ==== ELEMENTS ====
+    const monthLabel = document.getElementById('monthLabel');
+    const calDays = document.getElementById('calDays');
     const slotsEl = document.getElementById('slots');
-    const formEl = document.getElementById('bookingForm');
-    const msgEl = document.getElementById('message');
-    const selectedSlotEl = document.getElementById('selected_slot');
 
-    let selectedDate = null;
-    let selectedTime = null;
+    const fullNameEl = document.getElementById('full_name');
+    const phoneEl = document.getElementById('phone');
+    const emailEl = document.getElementById('email');
+    const plateEl = document.getElementById('plate');
+    const vehicleEl = document.getElementById('vehicle_type');
+    const serviceEl = document.getElementById('service_type');
+    const smsEl = document.getElementById('sms_opt_in');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const formMsg = document.getElementById('formMsg');
 
-    // set min date = today (local)
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    dateEl.min = `${yyyy}-${mm}-${dd}`;
+    const sumDate = document.getElementById('sumDate');
+    const sumTime = document.getElementById('sumTime');
+    const sumService = document.getElementById('sumService');
+    const sumVehicle = document.getElementById('sumVehicle');
+    const sumName = document.getElementById('sumName');
+    const sumPhone = document.getElementById('sumPhone');
+    const sumStatus = document.getElementById('sumStatus');
 
-    dateEl.addEventListener('change', async () => {
-      selectedDate = dateEl.value; // YYYY-MM-DD
-      selectedTime = null;
-      selectedSlotEl.value = '';
-      formEl.style.display = 'none';
-      msgEl.textContent = '';
-      await renderSlots(selectedDate);
-    });
+    // ==== HELPERS ====
+    const ymd = (d)=> `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const hm  = (m)=> `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
 
-    function* generateSlots() {
-      let minutes = OPEN_HOUR * 60;
-      while (minutes <= CLOSE_LAST_START) {
-        yield minutesToHHMM(minutes);
-        minutes += SLOT_MINUTES;
-      }
+    function todayYMD(){
+      const t = new Date(); return ymd(t);
     }
 
-    function minutesToHHMM(mins) {
-      const h = Math.floor(mins / 60);
-      const m = mins % 60;
-      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    function setSummary() {
+      sumDate.textContent = selectedDate || '—';
+      sumTime.textContent = selectedTime || '—';
+      sumService.textContent = serviceEl.value || 'Standard Smog Check';
+      sumVehicle.textContent = vehicleEl.value || '—';
+      sumName.textContent = (fullNameEl.value || '—');
+      sumPhone.textContent = (phoneEl.value || '—');
+      const ok = selectedDate && selectedTime && fullNameEl.value.trim() && phoneEl.value.trim();
+      confirmBtn.disabled = !ok;
+      sumStatus.textContent = ok ? 'Ready to book.' : 'Select a date & time and fill required fields.';
+      sumStatus.className = ok ? 'ok' : 'muted';
     }
 
-    async function fetchBookedTimes(isoDate) {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('start_time')
-        .eq('appt_date', isoDate);
-      if (error) {
-        console.error(error);
-        return new Set();
-      }
-      return new Set((data || []).map(r => r.start_time.slice(0,5))); // "HH:MM:SS" -> "HH:MM"
-    }
+    // ==== CALENDAR RENDER ====
+    function renderCalendar(){
+      monthLabel.textContent = viewMonth.toLocaleString(undefined, { month:'long', year:'numeric' });
+      calDays.innerHTML = '';
 
-    async function renderSlots(isoDate) {
-      slotsEl.innerHTML = 'Loading...';
-      const booked = await fetchBookedTimes(isoDate);
-      slotsEl.innerHTML = '';
+      const firstDow = (new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1)).getDay();
+      const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth()+1, 0).getDate();
 
-      for (const hhmm of generateSlots()) {
+      // pad blanks
+      for (let i=0; i<firstDow; i++){ calDays.appendChild(document.createElement('div')); }
+
+      for (let d=1; d<=daysInMonth; d++){
         const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'slot';
-        btn.textContent = hhmm;
-        btn.disabled = booked.has(hhmm);
-        btn.addEventListener('click', () => {
+        const dateObj = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), d);
+        const iso = ymd(dateObj);
+        btn.textContent = d;
+        if (iso < todayYMD()) { btn.disabled = true; btn.style.opacity = .5; }
+        btn.addEventListener('click', ()=> selectDate(iso, btn));
+        calDays.appendChild(btn);
+      }
+      // reselect if we’re still on same month
+      Array.from(calDays.children).forEach(el=>{
+        if (el.tagName==='BUTTON' && selectedDate){
+          const day = String(el.textContent).padStart(2,'0');
+          const iso = `${viewMonth.getFullYear()}-${String(viewMonth.getMonth()+1).padStart(2,'0')}-${day}`;
+          if (iso===selectedDate) el.classList.add('sel');
+        }
+      });
+    }
+
+    async function selectDate(iso, btn){
+      selectedDate = iso;
+      selectedTime = null;
+      // highlight
+      Array.from(calDays.querySelectorAll('button')).forEach(b=>b.classList.remove('sel'));
+      btn.classList.add('sel');
+      // load booked, then draw slots
+      bookedForDay = await fetchBookedTimes(iso);
+      renderSlots();
+      setSummary();
+    }
+
+    // ==== SLOTS ====
+    async function fetchBookedTimes(isoDate) {
+      const { data, error } = await supabase.from('bookings').select('start_time').eq('appt_date', isoDate);
+      if (error) { console.error(error); return new Set(); }
+      return new Set((data||[]).map(r => String(r.start_time).slice(0,5))); // HH:MM
+    }
+
+    function renderSlots(){
+      slotsEl.innerHTML = '';
+      for (let m=OPEN_MIN; m<=LAST_START_MIN; m+=SLOT_MIN){
+        const hhmm = hm(m);
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className='slot'; btn.textContent = hhmm;
+        btn.disabled = bookedForDay.has(hhmm) || !selectedDate;
+        btn.addEventListener('click', ()=>{
           selectedTime = hhmm;
-          selectedSlotEl.value = `Selected: ${isoDate} at ${hhmm}`;
-          msgEl.textContent = '';
-          formEl.style.display = 'grid';
-          formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setSummary();
+          // visual
+          Array.from(slotsEl.querySelectorAll('.slot')).forEach(b=>b.style.outline='none');
+          btn.style.outline = '2px solid var(--brand)';
         });
         slotsEl.appendChild(btn);
       }
-      if (slotsEl.children.length === 0) slotsEl.textContent = 'No slots.';
     }
 
-    formEl.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      msgEl.className = '';
-      msgEl.textContent = '';
+    // ==== NAV CAL ====
+    document.getElementById('prevMonth').addEventListener('click', ()=>{
+      viewMonth.setMonth(viewMonth.getMonth()-1); renderCalendar();
+    });
+    document.getElementById('nextMonth').addEventListener('click', ()=>{
+      viewMonth.setMonth(viewMonth.getMonth()+1); renderCalendar();
+    });
 
-      const full_name = document.getElementById('full_name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const car_plate = document.getElementById('car_plate').value.trim();
+    // ==== FORM / SUBMIT ====
+    ['input','change'].forEach(evt=>{
+      document.getElementById('bookingForm').addEventListener(evt, setSummary, true);
+    });
 
-      if (!selectedDate || !selectedTime) {
-        msgEl.className = 'error';
-        msgEl.textContent = 'Pick a time slot first.';
-        return;
+    document.getElementById('bookingForm').addEventListener('submit', async (e)=>{
+      e.preventDefault(); formMsg.textContent=''; formMsg.className='muted';
+      if (!selectedDate || !selectedTime){
+        formMsg.textContent = 'Pick a date and time.'; formMsg.className='err'; return;
       }
-
-      if (!/^[0-9\-+\s()]{7,}$/.test(phone)) {
-        msgEl.className = 'error';
-        msgEl.textContent = 'Enter a valid phone number.';
-        return;
+      if (!/^[0-9\-+\s()]{7,}$/.test(phoneEl.value.trim())){
+        formMsg.textContent = 'Enter a valid phone number.'; formMsg.className='err'; return;
       }
-
-      const { error } = await supabase.from('bookings').insert({
-        full_name, phone, email, car_plate,
+      const payload = {
+        full_name: fullNameEl.value.trim(),
+        phone: phoneEl.value.trim(),
+        email: emailEl.value.trim(),
+        car_plate: plateEl.value.trim(),
+        vehicle_type: vehicleEl.value || null,
+        service_type: serviceEl.value || 'Standard Smog Check',
+        sms_opt_in: !!smsEl.checked,
         appt_date: selectedDate,
         start_time: selectedTime + ':00'
-      });
-
-      if (error) {
-        if (String(error.code) === '23505') {
-          msgEl.className = 'error';
-          msgEl.textContent = 'Sorry, that slot was just taken. Pick another.';
-          await renderSlots(selectedDate);
-          return;
+      };
+      const { error } = await supabase.from('bookings').insert(payload);
+      if (error){
+        if (String(error.code)==='23505'){ // unique slot violation
+          formMsg.textContent = 'Sorry, that slot was just taken. Choose another time.'; formMsg.className='err';
+          bookedForDay = await fetchBookedTimes(selectedDate); renderSlots(); return;
         }
         console.error(error);
-        msgEl.className = 'error';
-        msgEl.textContent = 'Error creating booking. Try again.';
-        return;
+        formMsg.textContent = 'Error creating booking. Try again.'; formMsg.className='err'; return;
       }
-
-      msgEl.className = 'success';
-      msgEl.textContent = 'Booking confirmed. See you then!';
-      await renderSlots(selectedDate);
-      formEl.reset();
-      formEl.style.display = 'none';
-      selectedSlotEl.value = '';
+      formMsg.textContent = 'Booking confirmed. See you then!'; formMsg.className='ok';
+      // disable button to avoid duplicate submits
+      confirmBtn.disabled = true;
     });
+
+    // ==== INIT ====
+    // default view: current month, preselect today
+    renderCalendar();
+    const t = new Date();
+    const isoToday = ymd(t);
+    // simulate click on today if within hours; otherwise user can pick any date
+    const dayBtn = Array.from(calDays.querySelectorAll('button')).find(b=> {
+      const d = String(b.textContent).padStart(2,'0');
+      return `${viewMonth.getFullYear()}-${String(viewMonth.getMonth()+1).padStart(2,'0')}-${d}`===isoToday;
+    });
+    if (dayBtn && !dayBtn.disabled) dayBtn.click();
+    setSummary();
   </script>
 </body>
 </html>
