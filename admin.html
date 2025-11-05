@@ -6,54 +6,130 @@
 <title>Smog — Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  body { font-family: system-ui, Arial, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px; }
+  body { font-family: system-ui, Arial, sans-serif; max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+  input, select, button { padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; font:inherit }
+  button { cursor:pointer; background:#0a63ff; color:#fff; border-color:#0a63ff; font-weight:700 }
+  button.outline { background:#fff; color:#0a63ff }
   table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
   th { background: #f6f6f6; }
+  .muted{ color:#57606a; }
 </style>
 </head>
 <body>
-<h1>Bookings (read-only)</h1>
-<p><a href="./">← Back to booking</a></p>
+<header>
+  <h1>Bookings (Live)</h1>
+  <div class="controls">
+    <input id="dateFilter" type="date" />
+    <button id="todayBtn" class="outline" type="button">Today</button>
+    <button id="reloadBtn" type="button">Reload</button>
+    <a href="./" class="outline" style="text-decoration:none;display:inline-grid;place-items:center">Home</a>
+  </div>
+</header>
+
 <table id="tbl">
   <thead>
     <tr>
-      <th>Date</th><th>Start</th><th>Name</th><th>Phone</th><th>Email</th><th>Plate</th><th>Created</th>
+      <th>Date</th><th>Start</th><th>Name</th><th>Phone</th><th>Email</th><th>Plate</th>
+      <th>Service</th><th>Vehicle</th><th>SMS</th><th>Created</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
+
+<p class="muted">Tip: leave this page open in the shop; new bookings append automatically.</p>
+
 <script>
+  // ==== CONFIG (replace) ====
   const SUPABASE_URL = "https://fkuolecchzsysjkrfhtt.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdW9sZWNjaHpzeXNqa3JmaHR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTM0MTcsImV4cCI6MjA3NzQyOTQxN30.tlnhsdrOtVDxr0DFCfi5_-a3-6D2w80Qv1vE6ldtEbA";
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  async function load() {
-    const { data, error } = await supabase
-      .from('bookings')
+  const tbody = document.querySelector('#tbl tbody');
+  const dateFilter = document.getElementById('dateFilter');
+  const todayBtn = document.getElementById('todayBtn');
+  const reloadBtn = document.getElementById('reloadBtn');
+
+  function fmtTime(t){ return (t || '').slice(0,5); }
+
+  function rowHTML(r){
+    return `
+      <td>${r.appt_date}</td>
+      <td>${fmtTime(r.start_time)}</td>
+      <td>${r.full_name||''}</td>
+      <td>${r.phone||''}</td>
+      <td>${r.email||''}</td>
+      <td>${r.car_plate||''}</td>
+      <td>${r.service_type||''}</td>
+      <td>${r.vehicle_type||''}</td>
+      <td>${r.sms_opt_in ? 'Yes' : 'No'}</td>
+      <td>${new Date(r.created_at).toLocaleString()}</td>
+    `;
+  }
+
+  function appendRow(r){
+    const tr = document.createElement('tr');
+    tr.dataset.key = `${r.appt_date}|${fmtTime(r.start_time)}`;
+    tr.innerHTML = rowHTML(r);
+    tbody.appendChild(tr);
+  }
+
+  function clearTable(){ tbody.innerHTML=''; }
+
+  async function loadAll(){
+    const query = supabase.from('bookings')
       .select('*')
       .order('appt_date', { ascending: true })
       .order('start_time', { ascending: true });
 
-    if (error) { alert('Error loading bookings'); console.error(error); return; }
+    const df = dateFilter.value;
+    const { data, error } = df
+      ? await query.eq('appt_date', df)
+      : await query;
 
-    const tbody = document.querySelector('#tbl tbody');
-    tbody.innerHTML = '';
-    for (const r of data) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.appt_date}</td>
-        <td>${r.start_time?.slice(0,5)}</td>
-        <td>${r.full_name || ''}</td>
-        <td>${r.phone || ''}</td>
-        <td>${r.email || ''}</td>
-        <td>${r.car_plate || ''}</td>
-        <td>${new Date(r.created_at).toLocaleString()}</td>
-      `;
-      tbody.appendChild(tr);
-    }
+    if (error){ console.error(error); alert('Error loading bookings'); return; }
+    clearTable();
+    for (const r of data) appendRow(r);
   }
-  load();
+
+  // Realtime listener (INSERT)
+  const channel = supabase.channel('bookings-inserts')
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'bookings' },
+      (payload) => {
+        const r = payload.new;
+        // respect date filter: only append if matches current view (or no filter)
+        if (!dateFilter.value || dateFilter.value === r.appt_date){
+          appendRow(r);
+          // optional: tiny sound
+          // new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEA...').play().catch(()=>{});
+          // optional: desktop notification
+          if ('Notification' in window && Notification.permission === 'granted'){
+            try { new Notification('New Smog Booking', { body: `${r.appt_date} ${fmtTime(r.start_time)} — ${r.full_name||'Customer'}` }); } catch(e){}
+          }
+        }
+      })
+    .subscribe();
+
+  // Ask notification permission (optional)
+  if ('Notification' in window && Notification.permission === 'default'){
+    Notification.requestPermission().catch(()=>{});
+  }
+
+  // Controls
+  function todayISO(){
+    const t=new Date();
+    const yyyy=t.getFullYear(), mm=String(t.getMonth()+1).padStart(2,'0'), dd=String(t.getDate()).padStart(2,'0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  todayBtn.addEventListener('click', ()=>{ dateFilter.value = todayISO(); loadAll(); });
+  dateFilter.addEventListener('change', loadAll);
+  reloadBtn.addEventListener('click', loadAll);
+
+  // Init
+  loadAll();
 </script>
 </body>
 </html>

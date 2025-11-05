@@ -43,6 +43,7 @@
     .sum-row{display:flex;justify-content:space-between;margin:6px 0}
     .ok{color:#0a7a0a}
     .err{color:#b30000}
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
@@ -100,12 +101,8 @@
             <div class="row">
               <select id="vehicle_type">
                 <option value="">Vehicle Type</option>
-                <option>Car</option>
-                <option>Truck</option>
-                <option>SUV</option>
-                <option>Van</option>
-                <option>RV</option>
-                <option>Diesel</option>
+                <option>Car</option><option>Truck</option><option>SUV</option>
+                <option>Van</option><option>RV</option><option>Diesel</option>
               </select>
               <select id="service_type">
                 <option>Standard Smog Check</option>
@@ -144,8 +141,8 @@
 
   <script>
     // ==== CONFIG (replace) ====
-    const SUPABASE_URL = "YOUR_SUPABASE_URL";
-    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+    const SUPABASE_URL = "https://fkuolecchzsysjkrfhtt.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdW9sZWNjaHpzeXNqa3JmaHR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4NTM0MTcsImV4cCI6MjA3NzQyOTQxN30.tlnhsdrOtVDxr0DFCfi5_-a3-6D2w80Qv1vE6ldtEbA";
 
     const OPEN_MIN = 10*60;          // 10:00 → minutes from midnight
     const LAST_START_MIN = 16*60+40; // 16:40
@@ -263,7 +260,6 @@
         btn.addEventListener('click', ()=>{
           selectedTime = hhmm;
           setSummary();
-          // visual
           Array.from(slotsEl.querySelectorAll('.slot')).forEach(b=>b.style.outline='none');
           btn.style.outline = '2px solid var(--brand)';
         });
@@ -313,16 +309,13 @@
         formMsg.textContent = 'Error creating booking. Try again.'; formMsg.className='err'; return;
       }
       formMsg.textContent = 'Booking confirmed. See you then!'; formMsg.className='ok';
-      // disable button to avoid duplicate submits
       confirmBtn.disabled = true;
     });
 
     // ==== INIT ====
-    // default view: current month, preselect today
     renderCalendar();
     const t = new Date();
     const isoToday = ymd(t);
-    // simulate click on today if within hours; otherwise user can pick any date
     const dayBtn = Array.from(calDays.querySelectorAll('button')).find(b=> {
       const d = String(b.textContent).padStart(2,'0');
       return `${viewMonth.getFullYear()}-${String(viewMonth.getMonth()+1).padStart(2,'0')}-${d}`===isoToday;
